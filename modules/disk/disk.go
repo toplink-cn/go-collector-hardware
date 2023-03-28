@@ -1,50 +1,29 @@
 package disk
 
 import (
+	"collector/bin"
+	"collector/utils"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 )
 
-type Smartctl struct {
-	Devices []Device `json:"devices"`
-}
-
-type Device struct {
-	Name     string `json:"name"`
-	InfoName string `json:"info_name"`
-	Type     string `json:"type"`
-	Protocol string `json:"protocol"`
-}
-
-type DiskInfo struct {
-	ModelName    string       `json:"model_name"`
-	SmartStatus  SmartStatus  `json:"smart_status"`
-	UserCapacity UserCapacity `json:"user_capacity"`
-	Temperature  Temperature  `json:"temperature"`
-	PowerOnTime  PowerOnTime  `json:"power_on_time"`
-}
-
-type SmartStatus struct {
-	Passed bool `json:"passed"`
-}
-
-type UserCapacity struct {
-	Blocks int64 `json:"blocks"`
-	Bytes  int64 `json:"bytes"`
-}
-
-type Temperature struct {
-	Current int8 `json:"current"`
-}
-
-type PowerOnTime struct {
-	Hours int64 `json:"hours"`
-}
-
 func GetInfo() []*DiskInfo {
-	cmd := exec.Command("./bin/smartctl", "--json=c", "--scan")
-	output, err := cmd.Output()
+
+	disks := []*DiskInfo{}
+	switch utils.GetOsType() {
+	case "linux":
+		disks = getInfoViaLinux()
+		break
+	case "windows":
+		disks = getInfoViaWindows()
+		break
+	}
+
+	return disks
+}
+
+func getInfoViaLinux() []*DiskInfo {
+	output, err := bin.RunCommand("smartctl", "--json=c", "--scan")
 	if err != nil {
 		panic(err)
 	}
@@ -70,13 +49,17 @@ func GetInfo() []*DiskInfo {
 	return disks
 }
 
+func getInfoViaWindows() []*DiskInfo {
+	disks := []*DiskInfo{}
+
+	return disks
+}
+
 func getDiskInfo(path string) DiskInfo {
 	// 定义要执行的命令和参数
-	command := "smartctl"
 	args := []string{"--json=c", "-a", path}
 
-	// 执行命令并获取输出结果
-	output, err := exec.Command(command, args...).Output()
+	output, err := bin.RunCommand("smartctl", args...)
 	if err != nil {
 		panic(err)
 	}

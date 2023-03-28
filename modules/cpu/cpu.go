@@ -10,12 +10,21 @@ import (
 	"strings"
 )
 
-func GetInfo() {
+type CpuType struct {
+	Usage       []*CpuObj
+	Temperature []*CpuObj
+}
+
+func GetInfo() *CpuType {
 	usageCpus := getUsage()
 	temperatureCpus := getTemperature()
 
-	println(usageCpus)
-	println(temperatureCpus)
+	cpus := new(CpuType)
+
+	cpus.Usage = usageCpus
+	cpus.Temperature = temperatureCpus
+
+	return cpus
 }
 
 func getUsage() []*CpuObj {

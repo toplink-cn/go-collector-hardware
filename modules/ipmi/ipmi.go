@@ -2,8 +2,8 @@ package ipmi
 
 import (
 	"bytes"
+	"collector/bin"
 	"fmt"
-	"os/exec"
 )
 
 type Sensor struct {
@@ -14,13 +14,14 @@ type Sensor struct {
 func GetInfo() []*Sensor {
 
 	// 执行 ipmitool.static 命令
-	cmd := exec.Command("./bin/ipmitool.static", "sensor")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
+	// cmd := exec.Command("./bin/ipmitool.static", "sensor")
+	// var out bytes.Buffer
+	// cmd.Stdout = &out
+	// err := cmd.Run()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	out := bin.RunCommandAndReturnBytes("ipmitool", "sensor")
 
 	sensors := []*Sensor{}
 	// 解析传感器数据
