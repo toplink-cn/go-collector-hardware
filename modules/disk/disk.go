@@ -13,10 +13,9 @@ func GetInfo() []*DiskInfo {
 	switch utils.GetOsType() {
 	case "linux":
 		disks = getInfoViaLinux()
-		break
 	case "windows":
 		disks = getInfoViaWindows()
-		break
+	default:
 	}
 
 	return disks
@@ -33,7 +32,6 @@ func getInfoViaLinux() []*DiskInfo {
 		panic(err)
 	}
 
-	// 获取 devices 信息
 	disks := []*DiskInfo{}
 	for _, d := range s.Devices {
 		diskInfo := getDiskInfo(d.InfoName)
@@ -46,12 +44,6 @@ func getInfoViaLinux() []*DiskInfo {
 		println("=============")
 		disks = append(disks, &diskInfo)
 	}
-	return disks
-}
-
-func getInfoViaWindows() []*DiskInfo {
-	disks := []*DiskInfo{}
-
 	return disks
 }
 

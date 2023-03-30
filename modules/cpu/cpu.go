@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"bufio"
+	"collector/utils"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,11 +16,22 @@ type CpuType struct {
 	Temperature []*CpuObj
 }
 
-func GetInfo() *CpuType {
+func GetInfo() (cpus CpuType) {
+
+	switch utils.GetOsType() {
+	case "linux":
+		cpus = getInfoViaLinux()
+	case "windows":
+		cpus = getInfoViaWin()
+	default:
+	}
+
+	return cpus
+}
+
+func getInfoViaLinux() (cpus CpuType) {
 	usageCpus := getUsage()
 	temperatureCpus := getTemperature()
-
-	cpus := new(CpuType)
 
 	cpus.Usage = usageCpus
 	cpus.Temperature = temperatureCpus
@@ -110,6 +122,7 @@ func getTemperature() []*CpuObj {
 		panic(err)
 	}
 	temp = temp / 1000.0 // 转换为摄氏度
+	fmt.Println(temp)
 
 	// 获取 CPU 核心数量
 	cpuInfoData, err := ioutil.ReadFile("/proc/cpuinfo")

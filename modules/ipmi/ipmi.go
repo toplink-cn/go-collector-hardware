@@ -3,6 +3,7 @@ package ipmi
 import (
 	"bytes"
 	"collector/bin"
+	"collector/utils"
 	"fmt"
 )
 
@@ -12,15 +13,21 @@ type Sensor struct {
 }
 
 func GetInfo() []*Sensor {
+	sensors := []*Sensor{}
 
-	// 执行 ipmitool.static 命令
-	// cmd := exec.Command("./bin/ipmitool.static", "sensor")
-	// var out bytes.Buffer
-	// cmd.Stdout = &out
-	// err := cmd.Run()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	switch utils.GetOsType() {
+	case "linux":
+		sensors = getInfoViaLinux()
+	case "windows":
+		sensors = getInfoViaWin()
+	default:
+	}
+
+	return sensors
+}
+
+func getInfoViaLinux() []*Sensor {
+
 	out := bin.RunCommandAndReturnBytes("ipmitool", "sensor")
 
 	sensors := []*Sensor{}
