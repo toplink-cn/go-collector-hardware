@@ -9,11 +9,10 @@ import (
 	"fmt"
 )
 
-func GetInfo() []Sensor {
+func GetInfo() (sensors []Sensor) {
 
 	out := bin.RunCommandAndReturnBytes("ipmitool", "sensor")
 
-	sensors := []*Sensor{}
 	// 解析传感器数据
 	lines := bytes.Split(out.Bytes(), []byte{'\n'})
 	for _, line := range lines {
@@ -22,7 +21,7 @@ func GetInfo() []Sensor {
 			continue
 		}
 
-		sensor := Sensor{Key: fields[0], Value: fields[1]}
+		sensor := Sensor{Key: string(fields[0]), Value: string(fields[1])}
 
 		fmt.Printf("Sensor: %s, Value: %s\n", sensor.Key, sensor.Value)
 
