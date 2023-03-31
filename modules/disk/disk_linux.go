@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-func GetInfo() []*DiskInfo {
+func GetInfo() []DiskInfo {
 	output, err := bin.RunCommand("smartctl", "--json=c", "--scan")
 	if err != nil {
 		panic(err)
@@ -20,7 +20,7 @@ func GetInfo() []*DiskInfo {
 		panic(err)
 	}
 
-	disks := []*DiskInfo{}
+	disks := []DiskInfo{}
 	for _, d := range s.Devices {
 		diskInfo := getDiskInfo(d.InfoName)
 		fmt.Println("InfoName:", d.InfoName)
@@ -30,7 +30,7 @@ func GetInfo() []*DiskInfo {
 		fmt.Println("Temperature:", diskInfo.Temperature.Current)
 		fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
 		println("=============")
-		disks = append(disks, &diskInfo)
+		disks = append(disks, diskInfo)
 	}
 	return disks
 }

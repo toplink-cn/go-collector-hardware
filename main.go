@@ -18,7 +18,7 @@ func main() {
 
 type RespData struct {
 	Cpus        cpu.CpuObj
-	Disks       []*disk.DiskInfo
+	Disks       []disk.DiskInfo
 	Memory      memory.Memory
 	IpmiSensors []ipmi.Sensor
 }
