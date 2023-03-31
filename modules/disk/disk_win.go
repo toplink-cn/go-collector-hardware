@@ -52,8 +52,7 @@ type SmartInfo struct {
 	TemperatureCelsius int8
 }
 
-func GetInfo() []*DiskInfo {
-	disks := []*DiskInfo{}
+func GetInfo() (disks []DiskInfo) {
 
 	//查询Win32_DiskDrive类信息，获取硬盘信息
 	var drives []Win32DiskDrive
@@ -104,7 +103,7 @@ func GetInfo() []*DiskInfo {
 			fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
 			println("=============")
 
-			disks = append(disks, &diskInfo)
+			disks = append(disks, diskInfo)
 		}
 	}
 
@@ -112,8 +111,8 @@ func GetInfo() []*DiskInfo {
 }
 
 // 解析smart消息
-func parseSmartData(data [][]uint8) *SmartInfo {
-	smartInfo := new(SmartInfo)
+func parseSmartData(data [][]uint8) SmartInfo {
+	smartInfo := SmartInfo{}
 	for _, v := range data {
 		if len(v) != 12 {
 			continue
