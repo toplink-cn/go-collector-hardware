@@ -8,19 +8,18 @@ import (
 	"collector/modules/memory"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
 func main() {
-	// disk.GetInfo()
-	sendData()
+	cpu.GetInfo()
 }
 
 type RespData struct {
-	Cpus        *cpu.CpuType
+	Cpus        cpu.CpuObj
 	Disks       []*disk.DiskInfo
-	Memory      *memory.Memory
+	Memory      memory.Memory
 	IpmiSensors []*ipmi.Sensor
 }
 
@@ -42,7 +41,7 @@ func sendData() {
 	defer resp.Body.Close()
 
 	// 获取响应内容
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Failed to read response:", err)
 		return

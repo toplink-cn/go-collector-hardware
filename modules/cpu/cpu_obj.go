@@ -1,6 +1,11 @@
 package cpu
 
 type CpuObj struct {
-	ID    int8
-	cores []*CpuCore
+	Usage       []CpuAtrr
+	Temperature []CpuAtrr
+}
+
+type CpuAtrr struct {
+	ID    string
+	Value string
 }

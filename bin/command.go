@@ -9,7 +9,7 @@ import (
 	"os/exec"
 )
 
-//go:embed smartctl ipmitool
+//go:embed smartctl ipmitool OpenHardwareMonitorReport.exe OpenHardwareMonitorLib.dll
 var fs embed.FS
 
 // 执行命令
@@ -55,6 +55,7 @@ func RunCommandAndReturnBytes(cmdName string, args ...string) bytes.Buffer {
 	// 读取命令文件的内容
 	data, err := fs.ReadFile(cmdName)
 	if err != nil {
+		fmt.Println("can not read file")
 		panic(err)
 	}
 
@@ -77,7 +78,7 @@ func RunCommandAndReturnBytes(cmdName string, args ...string) bytes.Buffer {
 	if err := os.Chmod(file.Name(), 0700); err != nil {
 		panic(err)
 	}
-
+	fmt.Println("temp filename:", file.Name())
 	// 执行命令
 	cmd := exec.Command(file.Name(), args...)
 	var out bytes.Buffer
@@ -88,4 +89,53 @@ func RunCommandAndReturnBytes(cmdName string, args ...string) bytes.Buffer {
 	}
 
 	return out
+}
+
+// 执行命令
+func RunOpenHardwareCommand() bytes.Buffer {
+	// 创建临时目录
+	tmpDir, err := ioutil.TempDir("", "collector")
+	if err != nil {
+		fmt.Println("Failed to create temporary directory:", err)
+		panic(err)
+	}
+	defer os.Remove(tmpDir)
+
+	openHardware := createTmpFile(tmpDir, "OpenHardwareMonitorReport.exe")
+	// fmt.Println("temp filename:", openHardware)
+	defer os.Remove(openHardware)
+
+	dll := createTmpFile(tmpDir, "OpenHardwareMonitorLib.dll")
+	// fmt.Println("temp filename:", dll)
+	defer os.Remove(dll)
+
+	// 执行命令
+	cmd := exec.Command(openHardware)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err = cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func createTmpFile(tmpDir string, filename string) string {
+	data, err := fs.ReadFile(filename)
+	if err != nil {
+		fmt.Println("can not read file")
+		panic(err)
+	}
+
+	// 创建临时文件
+	tmpFile := fmt.Sprintf("%s\\%s", tmpDir, filename)
+	err = ioutil.WriteFile(tmpFile, data, 0700)
+	if err != nil {
+		fmt.Println("Failed to write data to file:", err)
+		panic(err)
+	}
+	// fmt.Println("write data to file succeed")
+
+	return tmpFile
 }
