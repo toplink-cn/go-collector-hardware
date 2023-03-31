@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package disk
 
 import (
@@ -49,7 +52,7 @@ type SmartInfo struct {
 	TemperatureCelsius int8
 }
 
-func getInfoViaWindows() []*DiskInfo {
+func GetInfo() []*DiskInfo {
 	disks := []*DiskInfo{}
 
 	//查询Win32_DiskDrive类信息，获取硬盘信息

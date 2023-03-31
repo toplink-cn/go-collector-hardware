@@ -1,3 +1,5 @@
 .idea
 .git
 tmp
+collector
+collector.exe

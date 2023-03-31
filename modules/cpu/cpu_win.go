@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package cpu
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/yusufpapurcu/wmi"
 )
 
-func getInfoViaWin() (cpuObj CpuObj) {
+func GetInfo() (cpuObj CpuObj) {
 
 	usageCpus := getWinUsage()
 	cpuObj.Usage = usageCpus
@@ -22,7 +25,7 @@ func getInfoViaWin() (cpuObj CpuObj) {
 	return cpuObj
 }
 
-func getWinTemperature() (cpus []CpuAtrr) {
+func getWinTemperature() (cpus []CpuAttr) {
 	out := bin.RunOpenHardwareCommand()
 	lines := bytes.Split(out.Bytes(), []byte{'\n'})
 	// 定义正则表达式
@@ -39,7 +42,7 @@ func getWinTemperature() (cpus []CpuAtrr) {
 			_id := matches[5] + "-" + matches[1]
 			fmt.Printf("Cpu Temperature %s : %s \n", _id, matches[2])
 
-			cpuAttr := CpuAtrr{ID: matches[5] + "-" + matches[1], Value: matches[2]}
+			cpuAttr := CpuAttr{ID: matches[5] + "-" + matches[1], Value: matches[2]}
 			cpus = append(cpus, cpuAttr)
 		}
 	}
@@ -54,7 +57,7 @@ type ProcessorInformation struct {
 	PercentIdleTime      uint64
 }
 
-func getWinUsage() (cpus []CpuAtrr) {
+func getWinUsage() (cpus []CpuAttr) {
 
 	var processorInformations []ProcessorInformation
 	err := wmi.QueryNamespace("SELECT Name,PercentProcessorTime,PercentIdleTime FROM Win32_PerfFormattedData_Counters_ProcessorInformation WHERE NOT Name LIKE '%_Total'", &processorInformations, "ROOT\\CIMV2")
@@ -76,7 +79,7 @@ func getWinUsage() (cpus []CpuAtrr) {
 		_id := ids[0] + "-" + ids[1]
 		_value := strconv.Itoa(int(item.PercentProcessorTime))
 
-		_cpuAttr := CpuAtrr{ID: _id, Value: _value}
+		_cpuAttr := CpuAttr{ID: _id, Value: _value}
 		fmt.Printf("Cpu Usage %s : %s \n", _id, _value)
 		cpus = append(cpus, _cpuAttr)
 	}

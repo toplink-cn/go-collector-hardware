@@ -1,66 +1,37 @@
 package disk
 
-import (
-	"collector/bin"
-	"collector/utils"
-	"encoding/json"
-	"fmt"
-)
-
-func GetInfo() []*DiskInfo {
-
-	disks := []*DiskInfo{}
-	switch utils.GetOsType() {
-	case "linux":
-		disks = getInfoViaLinux()
-	case "windows":
-		disks = getInfoViaWindows()
-	default:
-	}
-
-	return disks
+type Smartctl struct {
+	Devices []Device `json:"devices"`
 }
 
-func getInfoViaLinux() []*DiskInfo {
-	output, err := bin.RunCommand("smartctl", "--json=c", "--scan")
-	if err != nil {
-		panic(err)
-	}
-
-	var s Smartctl
-	if err := json.Unmarshal([]byte(output), &s); err != nil {
-		panic(err)
-	}
-
-	disks := []*DiskInfo{}
-	for _, d := range s.Devices {
-		diskInfo := getDiskInfo(d.InfoName)
-		fmt.Println("InfoName:", d.InfoName)
-		fmt.Println("ModelName:", diskInfo.ModelName)
-		fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
-		fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
-		fmt.Println("Temperature:", diskInfo.Temperature.Current)
-		fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
-		println("=============")
-		disks = append(disks, &diskInfo)
-	}
-	return disks
+type Device struct {
+	Name     string `json:"name"`
+	InfoName string `json:"info_name"`
+	Type     string `json:"type"`
+	Protocol string `json:"protocol"`
 }
 
-func getDiskInfo(path string) DiskInfo {
-	// 定义要执行的命令和参数
-	args := []string{"--json=c", "-a", path}
+type DiskInfo struct {
+	ModelName    string       `json:"model_name"`
+	SmartStatus  SmartStatus  `json:"smart_status"`
+	UserCapacity UserCapacity `json:"user_capacity"`
+	Temperature  Temperature  `json:"temperature"`
+	PowerOnTime  PowerOnTime  `json:"power_on_time"`
+}
 
-	output, err := bin.RunCommand("smartctl", args...)
-	if err != nil {
-		panic(err)
-	}
+type SmartStatus struct {
+	Passed bool `json:"passed"`
+}
 
-	var diskInfo DiskInfo
-	if err := json.Unmarshal([]byte(output), &diskInfo); err != nil {
-		fmt.Println("Failed to unmarshal JSON:", err)
-		return diskInfo
-	}
+type UserCapacity struct {
+	Blocks int64 `json:"blocks"`
+	Bytes  int64 `json:"bytes"`
+}
 
-	return diskInfo
+type Temperature struct {
+	Current int8 `json:"current"`
+}
+
+type PowerOnTime struct {
+	Hours int64 `json:"hours"`
 }

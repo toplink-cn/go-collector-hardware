@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package memory
 
 import (
@@ -11,7 +14,7 @@ type Win32_OperatingSystem struct {
 	TotalVisibleMemorySize uint64
 }
 
-func getInfoViaWin() (memory Memory) {
+func GetInfo() (memory Memory) {
 	var os []Win32_OperatingSystem
 	err := wmi.QueryNamespace("SELECT FreePhysicalMemory, TotalVisibleMemorySize FROM Win32_OperatingSystem", &os, "ROOT\\CIMV2")
 	if err != nil {

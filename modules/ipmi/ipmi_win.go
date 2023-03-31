@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package ipmi
 
 import (
@@ -18,7 +21,7 @@ type IPMI_SensorData struct {
 	OperationalState uint16
 }
 
-func getInfoViaWin() []*Sensor {
+func GetInfo() []*Sensor {
 
 	sensors := []*Sensor{}
 
