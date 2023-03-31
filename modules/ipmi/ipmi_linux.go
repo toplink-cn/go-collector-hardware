@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-func GetInfo() []*Sensor {
+func GetInfo() []Sensor {
 
 	out := bin.RunCommandAndReturnBytes("ipmitool", "sensor")
 
@@ -22,9 +22,8 @@ func GetInfo() []*Sensor {
 			continue
 		}
 
-		sensor := new(Sensor)
-		sensor.Key = string(fields[0])
-		sensor.Value = string(fields[1])
+		sensor := Sensor{Key: fields[0], Value: fields[1]}
+
 		fmt.Printf("Sensor: %s, Value: %s\n", sensor.Key, sensor.Value)
 
 		sensors = append(sensors, sensor)

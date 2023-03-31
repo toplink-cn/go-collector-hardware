@@ -4,9 +4,12 @@
 package ipmi
 
 import (
+	"bytes"
 	"fmt"
-
-	"github.com/yusufpapurcu/wmi"
+	"os"
+	"os/exec"
+	"regexp"
+	"strings"
 )
 
 type IPMI_SensorData struct {
@@ -21,30 +24,36 @@ type IPMI_SensorData struct {
 	OperationalState uint16
 }
 
-func GetInfo() []*Sensor {
-
-	sensors := []*Sensor{}
-
-	var sensorData []IPMI_SensorData
-	err := wmi.QueryNamespace("SELECT * FROM MSFT_Sensor", &sensorData, "ROOT\\WMI")
+func GetInfo() (sensors []Sensor) {
+	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("len:", len(sensorData))
-	if len(sensorData) < 1 {
-		return sensors
+	ipmiutilPath := wd + "\\tools\\ipmiutil\\ipmiutil.exe"
+	// fmt.Println(ipmiutilPath)
+
+	cmd := exec.Command(ipmiutilPath, "sensor")
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	err = cmd.Run()
+	if err != nil {
+		panic(err)
 	}
 
-	for _, item := range sensorData {
-		fmt.Printf("Name: %s\n", item.Name)
-		fmt.Printf("Type: %s\n", item.SensorType)
-		fmt.Printf("Reading: %f %s\n", item.CurrentReading, item.Units)
-		fmt.Printf("Lower Threshold: %f\n", item.LowerThreshold)
-		fmt.Printf("Upper Threshold: %f\n", item.UpperThreshold)
-		fmt.Printf("Enabled: %t\n", item.Enabled)
-		fmt.Printf("Time of Last Read: %s\n", item.TimeOfLastRead)
-		fmt.Printf("Operational State: %d\n\n", item.OperationalState)
+	lines := bytes.Split(output.Bytes(), []byte{'\n'})
+
+	pattren := regexp.MustCompile(`[0-9A-Fa-f]+\s+.*\s+snum [0-9A-Fa-f]+ (.*)\s+\= [0-9A-Fa-f]+ (?:OK)?(.*)?`)
+
+	for _, line := range lines {
+		matches := pattren.FindStringSubmatch(string(line))
+		// fmt.Printf("num %d : %s - %d \n", num, string(line), len(matches))
+
+		if len(matches) > 1 {
+			sensor := Sensor{Key: strings.TrimSpace(matches[1]), Value: strings.TrimSpace(matches[2])}
+			fmt.Printf("Sensor: %s, Value: %s\n", sensor.Key, sensor.Value)
+			sensors = append(sensors, sensor)
+		}
 	}
 
 	return sensors

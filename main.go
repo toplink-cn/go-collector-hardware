@@ -20,7 +20,7 @@ type RespData struct {
 	Cpus        cpu.CpuObj
 	Disks       []*disk.DiskInfo
 	Memory      memory.Memory
-	IpmiSensors []*ipmi.Sensor
+	IpmiSensors []ipmi.Sensor
 }
 
 func sendData() {
