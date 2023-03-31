@@ -12,6 +12,25 @@ import (
 	"net/http"
 )
 
+const (
+	IOCTL_WINRING0_BASE        = 0x911                      // WinRing0 base control code
+	IOCTL_WINRING0_RDTSC       = IOCTL_WINRING0_BASE + 0x00 // Read TSC value
+	IOCTL_WINRING0_TEMPERATURE = IOCTL_WINRING0_BASE + 0x04 // Read temperature
+)
+
+type Ring0IoctlInput struct {
+	IoctlCode  uint32
+	Input      uintptr
+	InputSize  uint32
+	Output     uintptr
+	OutputSize uint32
+}
+
+type Ring0Temperature struct {
+	TjMax           uint32
+	CoreTemperature uint32
+}
+
 func main() {
 	cpu.GetInfo()
 }
