@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -24,7 +27,15 @@ type RespData struct {
 }
 
 func sendData() {
-	url := "http://192.168.88.107:9502"
+	// 加载.env文件
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+
+	// url := "http://192.168.88.107:9502"
+	// 从环境变量中获取host
+	url := os.Getenv("host")
 
 	data := getInfo()
 
