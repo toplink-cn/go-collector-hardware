@@ -11,56 +11,50 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/shirou/gopsutil/cpu"
 )
 
 func GetInfo() (cpuObj CpuObj) {
 	usageCpus := getUsage()
-	temperatureCpus := getTemperature()
-
 	cpuObj.Usage = usageCpus
+
+	temperatureCpus := getTemperature()
 	cpuObj.Temperature = temperatureCpus
 
 	return cpuObj
 }
 
+type CpuInfo struct {
+	CoreID int `json:"cpu"`
+	CpuId  int `json:"cores"`
+}
+
 func getUsage() (cpuAttrs []CpuAttr) {
-	// 获取 CPU 使用率
-	statData, err := ioutil.ReadFile("/proc/stat")
+
+	is, err := cpu.Info()
 	if err != nil {
+		fmt.Println("Error:", err)
 		panic(err)
 	}
-	reader := bufio.NewReader(strings.NewReader(string(statData)))
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			break
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 5 || !strings.HasPrefix(fields[0], "cpu") {
-			continue
-		}
-
-		// 获取核心编号
-		coreID, err := strconv.Atoi(strings.TrimPrefix(fields[0], "cpu"))
-		if err != nil {
-			continue
-		}
-
-		user, _ := strconv.Atoi(fields[1])
-		nice, _ := strconv.Atoi(fields[2])
-		system, _ := strconv.Atoi(fields[3])
-		idle, _ := strconv.Atoi(fields[4])
-		iowait, _ := strconv.Atoi(fields[5])
-		irq, _ := strconv.Atoi(fields[6])
-		softirq, _ := strconv.Atoi(fields[7])
-		steal, _ := strconv.Atoi(fields[8])
-
-		total := user + nice + system + idle + iowait + irq + softirq + steal
-		usage := float64(total-idle) / float64(total) * 100.0
-
-		_id := strconv.Itoa(coreID)
+	var mapCore = make(map[int]string)
+	for _, i := range is {
+		_id := i.PhysicalID + "-" + i.CoreID
+		mapCore[int(i.CPU)] = _id
+		// fmt.Println("is:", i.CPU, _id)
+	}
+	ts, err := cpu.Times(true)
+	if err != nil {
+		fmt.Println("Error:", err)
+		panic(err)
+	}
+	for index, t := range ts {
+		total := t.Total()
+		usage := float64(total-t.Idle) / float64(total) * 100.0
 		_value := strconv.Itoa(int(usage))
+
+		_id := mapCore[index]
+
 		cpuAttr := CpuAttr{ID: _id, Value: _value}
 		fmt.Printf("Core %s Usage: %s\n", _id, _value)
 
@@ -69,6 +63,53 @@ func getUsage() (cpuAttrs []CpuAttr) {
 
 	return cpuAttrs
 }
+
+// func getUsage2() (cpuAttrs []CpuAttr) {
+// 	// 获取 CPU 使用率
+// 	statData, err := ioutil.ReadFile("/proc/stat")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	reader := bufio.NewReader(strings.NewReader(string(statData)))
+
+// 	for {
+// 		line, err := reader.ReadString('\n')
+// 		if err != nil {
+// 			break
+// 		}
+// 		fields := strings.Fields(line)
+// 		if len(fields) < 5 || !strings.HasPrefix(fields[0], "cpu") {
+// 			continue
+// 		}
+
+// 		// 获取核心编号
+// 		coreID, err := strconv.Atoi(strings.TrimPrefix(fields[0], "cpu"))
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		user, _ := strconv.Atoi(fields[1])
+// 		nice, _ := strconv.Atoi(fields[2])
+// 		system, _ := strconv.Atoi(fields[3])
+// 		idle, _ := strconv.Atoi(fields[4])
+// 		iowait, _ := strconv.Atoi(fields[5])
+// 		irq, _ := strconv.Atoi(fields[6])
+// 		softirq, _ := strconv.Atoi(fields[7])
+// 		steal, _ := strconv.Atoi(fields[8])
+
+// 		total := user + nice + system + idle + iowait + irq + softirq + steal
+// 		usage := float64(total-idle) / float64(total) * 100.0
+
+// 		_id := strconv.Itoa(coreID)
+// 		_value := strconv.Itoa(int(usage))
+// 		cpuAttr := CpuAttr{ID: _id, Value: _value}
+// 		fmt.Printf("Core %s Usage: %s\n", _id, _value)
+
+// 		cpuAttrs = append(cpuAttrs, cpuAttr)
+// 	}
+
+// 	return cpuAttrs
+// }
 
 func getTemperature() (cpuAttrs []CpuAttr) {
 	// 获取 CPU 温度
@@ -145,7 +186,7 @@ coreOuter:
 			}
 			coreTemp = coreTemp / 1000.0 // 转换为摄氏度
 
-			_id := strconv.Itoa(cpuIndex) + "-" + strconv.Itoa(i)
+			_id := strconv.Itoa(cpuIndex) + "-" + strconv.Itoa(i-1)
 			_value := strconv.Itoa(int(coreTemp))
 
 			cpuAttr := CpuAttr{ID: _id, Value: _value}
