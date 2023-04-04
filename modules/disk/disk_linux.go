@@ -7,6 +7,7 @@ import (
 	"collector/bin"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -27,7 +28,6 @@ func GetInfo() []DiskInfo {
 		fmt.Println("InfoName:", d.InfoName)
 		fmt.Println("ModelName:", diskInfo.ModelName)
 		fmt.Println("SerialNumber:", diskInfo.SerialNumber)
-		fmt.Println("ModelFamily:", diskInfo.ModelFamily)
 		fmt.Println("ModelType:", diskInfo.ModelType)
 		fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
 		fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
@@ -54,16 +54,34 @@ func getDiskInfo(path string) DiskInfo {
 		return diskInfo
 	}
 
-	modelFamily := strings.ToLower(diskInfo.ModelFamily)
-	if strings.Contains(modelFamily, "ssd") {
-		diskInfo.ModelType = "ssd"
-	} else if strings.Contains(modelFamily, "hhd") {
-		diskInfo.ModelType = "hdd"
-	} else if strings.Contains(modelFamily, "nvme") {
-		diskInfo.ModelType = "nvme"
+	protocol := ""
+	modelType := ""
+	if _, ok := reflect.TypeOf(diskInfo).FieldByName("SetaVersion"); ok {
+		protocol = diskInfo.SetaVersion.String
 	} else {
-		diskInfo.ModelType = "unknown"
+		if strings.HasPrefix(path, "/dev/sd") {
+			protocol = "SATA"
+		} else {
+			protocol = diskInfo.Device.Protocol
+			switch protocol {
+			case "NVMe":
+				modelType = "NVMe"
+			default:
+			}
+		}
 	}
+
+	if _, ok := reflect.TypeOf(diskInfo).FieldByName("RotationRate"); ok {
+		if diskInfo.RotationRate == 0 {
+			modelType = "ssd"
+		} else {
+			modelType = "hdd"
+		}
+	} else {
+		modelType = "ssd"
+	}
+
+	diskInfo.ModelType = protocol + " " + modelType
 
 	return diskInfo
 }

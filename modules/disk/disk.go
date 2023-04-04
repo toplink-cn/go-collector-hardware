@@ -18,8 +18,15 @@ type DiskInfo struct {
 	Temperature  Temperature  `json:"temperature"`
 	PowerOnTime  PowerOnTime  `json:"power_on_time"`
 	SerialNumber string       `json:"serial_number"`
-	ModelFamily  string       `json:"model_family"`
+	RotationRate int64        `json:"rotation_rate"`
+	Device       Device       `json:"device"`
+	SetaVersion  SetaVersion  `json:"seta_version"`
 	ModelType    string
+}
+
+type SetaVersion struct {
+	String string `json:"string"`
+	Value  int64  `json:"value"`
 }
 
 type SmartStatus struct {
