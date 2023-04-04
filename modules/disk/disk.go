@@ -17,6 +17,9 @@ type DiskInfo struct {
 	UserCapacity UserCapacity `json:"user_capacity"`
 	Temperature  Temperature  `json:"temperature"`
 	PowerOnTime  PowerOnTime  `json:"power_on_time"`
+	SerialNumber string       `json:"serial_number"`
+	ModelFamily  string       `json:"model_family"`
+	ModelType    string
 }
 
 type SmartStatus struct {

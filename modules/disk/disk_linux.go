@@ -7,6 +7,7 @@ import (
 	"collector/bin"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 func GetInfo() []DiskInfo {
@@ -25,6 +26,9 @@ func GetInfo() []DiskInfo {
 		diskInfo := getDiskInfo(d.InfoName)
 		fmt.Println("InfoName:", d.InfoName)
 		fmt.Println("ModelName:", diskInfo.ModelName)
+		fmt.Println("SerialNumber:", diskInfo.SerialNumber)
+		fmt.Println("ModelFamily:", diskInfo.ModelFamily)
+		fmt.Println("ModelType:", diskInfo.ModelType)
 		fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
 		fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
 		fmt.Println("Temperature:", diskInfo.Temperature.Current)
@@ -48,6 +52,17 @@ func getDiskInfo(path string) DiskInfo {
 	if err := json.Unmarshal([]byte(output), &diskInfo); err != nil {
 		fmt.Println("Failed to unmarshal JSON:", err)
 		return diskInfo
+	}
+
+	modelFamily := strings.ToLower(diskInfo.ModelFamily)
+	if strings.Contains(modelFamily, "ssd") {
+		diskInfo.ModelType = "ssd"
+	} else if strings.Contains(modelFamily, "hhd") {
+		diskInfo.ModelType = "hdd"
+	} else if strings.Contains(modelFamily, "nvme") {
+		diskInfo.ModelType = "nvme"
+	} else {
+		diskInfo.ModelType = "unknown"
 	}
 
 	return diskInfo
