@@ -39,7 +39,12 @@ func getWinTemperature() (cpus []CpuAttr) {
 		// 检查匹配结果
 		if len(matches) > 0 {
 			// 打印匹配结果
-			_id := matches[5] + "-" + matches[1]
+			_coreId, err := strconv.Atoi(matches[1])
+			if err != nil {
+				continue
+			}
+			_id := matches[5] + "-" + strconv.Itoa(_coreId-1)
+
 			fmt.Printf("Cpu Temperature %s : %s \n", _id, matches[2])
 
 			cpuAttr := CpuAttr{ID: matches[5] + "-" + matches[1], Value: matches[2]}
