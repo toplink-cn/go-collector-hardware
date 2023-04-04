@@ -18,7 +18,7 @@ type DiskInfo struct {
 	Temperature  Temperature  `json:"temperature"`
 	PowerOnTime  PowerOnTime  `json:"power_on_time"`
 	SerialNumber string       `json:"serial_number"`
-	RotationRate int64        `json:"rotation_rate"`
+	RotationRate interface{}  `json:"rotation_rate,omitempty"`
 	Device       Device       `json:"device"`
 	SetaVersion  SetaVersion  `json:"seta_version"`
 	ModelType    string

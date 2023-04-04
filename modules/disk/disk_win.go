@@ -4,151 +4,102 @@
 package disk
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
+	"os"
+	"os/exec"
 	"strings"
-
-	"github.com/yusufpapurcu/wmi"
 )
 
-type Win32DiskDrive struct {
-	Caption      string
-	DeviceID     string
-	Model        string
-	SerialNumber string
-	Size         uint64
-	PNPDeviceID  string
-}
-
-type Win32DiskDriveTemperature struct {
-	Active             bool
-	Checksum           uint8
-	ErrorLogCapability uint8
-	//ExtendPollTimeInMinutes  uint8
-	InstanceName             string
-	Length                   uint32
-	OfflineCollectCapability uint8
-	OfflineCollectionStatus  uint8
-	Reserved                 []uint8
-	SelfTestStatus           uint8
-	//ShortPollTimeMinutes     uint8
-	SmartCapability uint16
-	TotalTime       uint16
-	VendorSpecific  []uint8
-	VendorSpecific2 uint8
-	VendorSpecific3 uint8
-	VendorSpecific4 []uint8
-}
-
-const (
-	Power_On_Hours      = 9
-	Power_Cycle_Count   = 12
-	Temperature_Celsius = 194
-)
-
-type SmartInfo struct {
-	PowerOnHours       int64
-	PowerCycleCount    string
-	TemperatureCelsius int8
-}
-
-func GetInfo() (disks []DiskInfo) {
-
-	//查询Win32_DiskDrive类信息，获取硬盘信息
-	var drives []Win32DiskDrive
-	err := wmi.Query("SELECT * FROM Win32_DiskDrive", &drives)
+func GetInfo() []DiskInfo {
+	wd, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Query Win32_DiskDrive error:", err)
+		panic(err)
+	}
+	smartctlPath := wd + "\\tools\\smartctl\\smartctl.exe"
+	cmd := exec.Command(smartctlPath, "--json=c", "--scan")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		panic(err)
 	}
 
-	for _, drive := range drives {
-
-		//查询Win32_DiskDriveTemperature类信息，获取硬盘温度
-		var temps []Win32DiskDriveTemperature
-		PNPDeviceID := strings.ReplaceAll(drive.PNPDeviceID, "\\", "\\\\")
-		fmt.Println("PNPDeviceID:", PNPDeviceID)
-		queryString := fmt.Sprintf("SELECT * FROM MSStorageDriver_ATAPISmartData WHERE InstanceName LIKE '%%%s%%'", PNPDeviceID)
-		// fmt.Println("queryString:", queryString)
-		err = wmi.QueryNamespace(queryString, &temps, "root\\WMI")
-		if err != nil {
-			fmt.Println("Query Win32_DiskDriveTemperature error:", err)
-			continue
-		}
-		if len(temps) < 1 {
-			fmt.Println("No temps found")
-			continue
-		}
-
-		for _, v := range temps {
-			result := SplitUintN(v.VendorSpecific[2:], 12)
-			if result == nil {
-				continue
-			}
-
-			smartInfo := parseSmartData(result)
-
-			diskInfo := DiskInfo{}
-			diskInfo.ModelName = drive.Model
-			diskInfo.SmartStatus = SmartStatus{Passed: v.Active}
-			diskInfo.UserCapacity = UserCapacity{Blocks: 0, Bytes: int64(drive.Size)}
-			diskInfo.Temperature = Temperature{Current: int8(smartInfo.TemperatureCelsius)}
-			diskInfo.PowerOnTime = PowerOnTime{Hours: int64(smartInfo.PowerOnHours)}
-
-			// fmt.Println("InfoName:", path)
-			fmt.Println("ModelName:", diskInfo.ModelName)
-			fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
-			fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
-			fmt.Println("Temperature:", diskInfo.Temperature.Current)
-			fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
-			println("=============")
-
-			disks = append(disks, diskInfo)
-		}
+	var s Smartctl
+	if err := json.Unmarshal([]byte(output), &s); err != nil {
+		panic(err)
 	}
 
+	disks := []DiskInfo{}
+	for _, d := range s.Devices {
+		diskInfo := getDiskInfo(d.InfoName)
+		fmt.Println("InfoName:", d.InfoName)
+		fmt.Println("ModelName:", diskInfo.ModelName)
+		fmt.Println("SerialNumber:", diskInfo.SerialNumber)
+		fmt.Println("ModelType:", diskInfo.ModelType)
+		fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
+		fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
+		fmt.Println("Temperature:", diskInfo.Temperature.Current)
+		fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
+		println("=============")
+		disks = append(disks, diskInfo)
+	}
 	return disks
 }
 
-// 解析smart消息
-func parseSmartData(data [][]uint8) SmartInfo {
-	smartInfo := SmartInfo{}
-	for _, v := range data {
-		if len(v) != 12 {
-			continue
-		}
-		v5 := int(v[5])
-		v6 := int(v[6]) * 16 * 16
-		v7 := int(v[7]) * 16 * 16 * 16
-		v9 := int(v[9])
-		p := v5 + v6 + v7
-		switch v[0] {
-		case Power_On_Hours:
-			smartInfo.PowerOnHours = int64(p)
-		case Power_Cycle_Count:
-			smartInfo.PowerCycleCount = strconv.Itoa(p)
-		case Temperature_Celsius:
-			smartInfo.TemperatureCelsius = int8(v9)
-		}
-	}
-	return smartInfo
-}
+func getDiskInfo(path string) DiskInfo {
+	// 定义要执行的命令和参数
+	args := []string{"--json=c", "-a", path}
 
-// SplitUintN 按给定的长度进行分割
-func SplitUintN(source []uint8, size int) [][]uint8 {
-	if len(source) < size || size <= 0 {
-		return nil
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
 	}
-	result := make([][]uint8, 0)
-	for i := 0; i < len(source)/size; i++ {
-		if source[i*size] == 0 {
-			continue
-		}
-		if len(source[i*size:]) > size {
-			result = append(result, source[i*size:i*size+size])
+	smartctlPath := wd + "\\tools\\smartctl\\smartctl.exe"
+	cmd := exec.Command(smartctlPath, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+
+	var s Smartctl
+	if err := json.Unmarshal([]byte(output), &s); err != nil {
+		panic(err)
+	}
+
+	var diskInfo DiskInfo
+	if err := json.Unmarshal([]byte(output), &diskInfo); err != nil {
+		fmt.Println("Failed to unmarshal JSON:", err)
+		return diskInfo
+	}
+
+	protocol := ""
+	modelType := ""
+	if diskInfo.SetaVersion.String != "" {
+		protocol = diskInfo.SetaVersion.String
+	} else {
+		if strings.HasPrefix(path, "/dev/sd") {
+			protocol = "SATA"
 		} else {
-			result = append(result, source[i*size:])
+			protocol = diskInfo.Device.Protocol
+			switch protocol {
+			case "NVMe":
+				modelType = "NVMe"
+			default:
+			}
 		}
 	}
-	return result
+	fmt.Println("RotationRate:", diskInfo.RotationRate)
+
+	if diskInfo.RotationRate != nil {
+		if diskInfo.RotationRate == 0 {
+			modelType = "ssd"
+		} else {
+			modelType = "hdd"
+		}
+	} else {
+		modelType = "ssd"
+	}
+
+	diskInfo.ModelType = protocol + " " + modelType
+
+	return diskInfo
 }
