@@ -7,7 +7,6 @@ import (
 	"collector/bin"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -56,7 +55,7 @@ func getDiskInfo(path string) DiskInfo {
 
 	protocol := ""
 	modelType := ""
-	if _, ok := reflect.TypeOf(diskInfo).FieldByName("SetaVersion"); ok {
+	if diskInfo.SetaVersion.String != "" {
 		protocol = diskInfo.SetaVersion.String
 	} else {
 		if strings.HasPrefix(path, "/dev/sd") {
@@ -71,7 +70,7 @@ func getDiskInfo(path string) DiskInfo {
 		}
 	}
 
-	if _, ok := reflect.TypeOf(diskInfo).FieldByName("RotationRate"); ok {
+	if diskInfo.RotationRate != nil {
 		if diskInfo.RotationRate == 0 {
 			modelType = "ssd"
 		} else {
