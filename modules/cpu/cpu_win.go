@@ -26,7 +26,7 @@ func GetInfo() (cpuObj CpuObj) {
 }
 
 func getWinTemperature() (cpus []CpuAttr) {
-	out := bin.RunOpenHardwareCommand()
+	out := bin.RunCommandAndReturnBytes("OpenHardwareMonitorReport.exe")
 	lines := bytes.Split(out.Bytes(), []byte{'\n'})
 	// 定义正则表达式
 	re := regexp.MustCompile(`CPU Core #(\d+)\s+:\s+(\d+)\s+(\d+)\s+(\d+) \(.*\/(\d+)\/temperature\/\d+\)`)
