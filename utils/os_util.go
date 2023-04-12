@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 )
@@ -20,10 +21,11 @@ func GetOsType() string {
 }
 
 func GetBinDir() string {
-	_, filename, _, _ := runtime.Caller(0)
-
-	rootPath := filepath.Join(filepath.Dir(filename), "../")
-	absPath, err := filepath.Abs(rootPath)
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	absPath, err := filepath.Abs(wd)
 	if err != nil {
 		panic(err)
 	}
