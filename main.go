@@ -35,7 +35,7 @@ func sendData() {
 
 	// url := "http://192.168.88.107:9502"
 	// 从环境变量中获取host
-	url := os.Getenv("host")
+	url := os.Getenv("Host")
 
 	data := getInfo()
 
