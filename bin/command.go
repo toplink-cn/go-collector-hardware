@@ -28,7 +28,7 @@ func RunCommandAndReturnBytes(filename string, args ...string) bytes.Buffer {
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		panic(err)
+		fmt.Println("Run RunCommandAndReturnBytes Error: ", filename)
 	}
 
 	return out
