@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -36,6 +37,7 @@ func sendData() {
 	// url := "http://192.168.88.107:9502"
 	// 从环境变量中获取host
 	url := os.Getenv("HOST")
+	fmt.Println("url:", url)
 
 	data := getInfo()
 
@@ -57,8 +59,9 @@ func sendData() {
 		fmt.Println("Failed to read response:", err)
 		return
 	}
-
-	fmt.Println("Response:", string(respData))
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("2006-01-02 15:04:05")
+	fmt.Println(formattedTime+", Response:", string(respData))
 }
 
 func getInfo() *RespData {
