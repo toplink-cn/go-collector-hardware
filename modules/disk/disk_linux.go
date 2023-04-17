@@ -23,7 +23,13 @@ func GetInfo() []DiskInfo {
 
 	disks := []DiskInfo{}
 	for _, d := range s.Devices {
-		diskInfo := getDiskInfo(d.InfoName)
+		args := []string{"--json=c", "-a", d.InfoName, "-d", d.Type}
+		diskInfo := getDiskInfo(d.InfoName, args...)
+
+		if diskInfo.ModelName == "" {
+			continue
+		}
+
 		fmt.Println("InfoName:", d.InfoName)
 		fmt.Println("ModelName:", diskInfo.ModelName)
 		fmt.Println("SerialNumber:", diskInfo.SerialNumber)
@@ -38,19 +44,20 @@ func GetInfo() []DiskInfo {
 	return disks
 }
 
-func getDiskInfo(path string) DiskInfo {
-	// 定义要执行的命令和参数
-	args := []string{"--json=c", "-a", path}
-
+func getDiskInfo(path string, args ...string) DiskInfo {
 	output, err := bin.RunCommand("smartctl", args...)
 	if err != nil {
-		panic(err)
+		fmt.Println("getDiskInfo err:", err.Error())
 	}
 
 	var diskInfo DiskInfo
 	if err := json.Unmarshal([]byte(output), &diskInfo); err != nil {
 		fmt.Println("Failed to unmarshal JSON:", err)
-		return diskInfo
+		return DiskInfo{}
+	}
+
+	if diskInfo.ScsiVendor == "LSI" {
+		return DiskInfo{}
 	}
 
 	protocol := ""

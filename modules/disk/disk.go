@@ -21,6 +21,7 @@ type DiskInfo struct {
 	RotationRate interface{}  `json:"rotation_rate,omitempty"`
 	Device       Device       `json:"device"`
 	SetaVersion  SetaVersion  `json:"seta_version"`
+	ScsiVendor   string       `json:"scsi_vendor"`
 	ModelType    string
 }
 

@@ -10,11 +10,10 @@ import (
 func RunCommand(filename string, args ...string) ([]byte, error) {
 	rootDir := utils.GetBinDir()
 	filename = rootDir + "/" + filename
-	fmt.Println("filename:", filename)
 	cmd := exec.Command(filename, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return out, err
 	}
 
 	return out, nil
