@@ -9,6 +9,7 @@ import (
 )
 
 func GetOsType() string {
+	fmt.Println(runtime.GOOS)
 	if runtime.GOOS == "windows" {
 		fmt.Println("Windows")
 		return "windows"
@@ -23,17 +24,17 @@ func GetOsType() string {
 
 func GetBinDir() string {
 	if IsTesting() {
-		fmt.Println("go run")
 		wd, err := os.Getwd()
 		if err != nil {
 			fmt.Println(err)
 		}
-		dir := wd + "/bin"
-		switch GetOsType() {
+		dir := ""
+		osType := GetOsType()
+		switch osType {
 		case "linux":
-			dir = dir + "/linux"
-		case "widnows":
-			dir = dir + "/widnows"
+			dir = wd + "/bin/linux"
+		case "windows":
+			dir = wd + "\\bin\\windows"
 		default:
 			fmt.Println("Unknown OS")
 		}

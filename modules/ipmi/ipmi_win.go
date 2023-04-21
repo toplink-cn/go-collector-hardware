@@ -5,9 +5,8 @@ package ipmi
 
 import (
 	"bytes"
+	"collector/bin"
 	"fmt"
-	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -25,21 +24,9 @@ type IPMI_SensorData struct {
 }
 
 func GetInfo() (sensors []Sensor) {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
 
-	ipmiutilPath := wd + "\\bin\\ipmiutil\\ipmiutil.exe"
-	// fmt.Println(ipmiutilPath)
-
-	cmd := exec.Command(ipmiutilPath, "sensor")
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
+	args := []string{"sensor"}
+	output := bin.RunCommandAndReturnBytes("ipmiutil\\ipmiutil.exe", args...)
 
 	lines := bytes.Split(output.Bytes(), []byte{'\n'})
 

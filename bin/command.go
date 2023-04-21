@@ -9,7 +9,15 @@ import (
 
 func RunCommand(filename string, args ...string) ([]byte, error) {
 	rootDir := utils.GetBinDir()
-	filename = rootDir + "/" + filename
+	osType := utils.GetOsType()
+	switch osType {
+	case "linux":
+		filename = rootDir + "/" + filename
+	case "windows":
+		filename = rootDir + "\\" + filename
+	default:
+		fmt.Println("Unknown OS")
+	}
 	cmd := exec.Command(filename, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -21,7 +29,15 @@ func RunCommand(filename string, args ...string) ([]byte, error) {
 
 func RunCommandAndReturnBytes(filename string, args ...string) bytes.Buffer {
 	rootDir := utils.GetBinDir()
-	filename = rootDir + "/" + filename
+	osType := utils.GetOsType()
+	switch osType {
+	case "linux":
+		filename = rootDir + "/" + filename
+	case "windows":
+		filename = rootDir + "\\" + filename
+	default:
+		fmt.Println("Unknown OS")
+	}
 	cmd := exec.Command(filename, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out

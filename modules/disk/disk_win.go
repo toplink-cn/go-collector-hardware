@@ -4,21 +4,15 @@
 package disk
 
 import (
+	"collector/bin"
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 )
 
 func GetInfo() []DiskInfo {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	smartctlPath := wd + "\\bin\\smartctl\\smartctl.exe"
-	cmd := exec.Command(smartctlPath, "--json=c", "--scan")
-	output, err := cmd.CombinedOutput()
+	args := []string{"--json=c", "--scan"}
+	output, err := bin.RunCommand("smartctl\\smartctl.exe", args...)
 	if err != nil {
 		panic(err)
 	}
@@ -46,16 +40,8 @@ func GetInfo() []DiskInfo {
 }
 
 func getDiskInfo(path string) DiskInfo {
-	// 定义要执行的命令和参数
 	args := []string{"--json=c", "-a", path}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	smartctlPath := wd + "\\bin\\smartctl\\smartctl.exe"
-	cmd := exec.Command(smartctlPath, args...)
-	output, err := cmd.CombinedOutput()
+	output, err := bin.RunCommand("smartctl\\smartctl.exe", args...)
 	if err != nil {
 		panic(err)
 	}
