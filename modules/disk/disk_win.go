@@ -16,7 +16,7 @@ func GetInfo() []DiskInfo {
 	if err != nil {
 		panic(err)
 	}
-	smartctlPath := wd + "\\tools\\smartctl\\smartctl.exe"
+	smartctlPath := wd + "\\bin\\smartctl\\smartctl.exe"
 	cmd := exec.Command(smartctlPath, "--json=c", "--scan")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -53,7 +53,7 @@ func getDiskInfo(path string) DiskInfo {
 	if err != nil {
 		panic(err)
 	}
-	smartctlPath := wd + "\\tools\\smartctl\\smartctl.exe"
+	smartctlPath := wd + "\\bin\\smartctl\\smartctl.exe"
 	cmd := exec.Command(smartctlPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

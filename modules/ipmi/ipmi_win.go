@@ -30,7 +30,7 @@ func GetInfo() (sensors []Sensor) {
 		panic(err)
 	}
 
-	ipmiutilPath := wd + "\\tools\\ipmiutil\\ipmiutil.exe"
+	ipmiutilPath := wd + "\\bin\\ipmiutil\\ipmiutil.exe"
 	// fmt.Println(ipmiutilPath)
 
 	cmd := exec.Command(ipmiutilPath, "sensor")
