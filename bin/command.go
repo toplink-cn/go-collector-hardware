@@ -5,6 +5,7 @@ import (
 	"collector/utils"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 func RunCommand(filename string, args ...string) ([]byte, error) {
@@ -18,6 +19,7 @@ func RunCommand(filename string, args ...string) ([]byte, error) {
 	default:
 		fmt.Println("Unknown OS")
 	}
+	fmt.Println("cmd:", filename+strings.Join(args, " "))
 	cmd := exec.Command(filename, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

@@ -43,7 +43,7 @@ func getDiskInfo(path string) DiskInfo {
 	args := []string{"--json=c", "-a", path}
 	output, err := bin.RunCommand("smartctl\\smartctl.exe", args...)
 	if err != nil {
-		panic(err)
+		fmt.Println("err:", err.Error())
 	}
 
 	var s Smartctl
