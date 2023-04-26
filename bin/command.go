@@ -19,7 +19,7 @@ func RunCommand(filename string, args ...string) ([]byte, error) {
 	default:
 		fmt.Println("Unknown OS")
 	}
-	fmt.Println("cmd:", filename+strings.Join(args, " "))
+	fmt.Println("cmd:", filename+" "+strings.Join(args, " "))
 	cmd := exec.Command(filename, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

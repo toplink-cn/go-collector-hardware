@@ -9,12 +9,12 @@ import (
 )
 
 func GetOsType() string {
-	fmt.Println(runtime.GOOS)
+	// fmt.Println(runtime.GOOS)
 	if runtime.GOOS == "windows" {
-		fmt.Println("Windows")
+		// fmt.Println("Windows")
 		return "windows"
 	} else if runtime.GOOS == "linux" {
-		fmt.Println("Linux")
+		// fmt.Println("Linux")
 		return "linux"
 	} else {
 		fmt.Println("Unknown")

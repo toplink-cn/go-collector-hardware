@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -67,11 +68,29 @@ func sendData() {
 func getInfo() *RespData {
 	respData := new(RespData)
 
-	respData.Disks = disk.GetInfo()
-	respData.Cpus = cpu.GetInfo()
+	var wg sync.WaitGroup
+	wg.Add(4)
+	go func() {
+		respData.Disks = disk.GetInfo()
+		wg.Done()
+	}()
 
-	respData.Memory = memory.GetInfo()
-	respData.IpmiSensors = ipmi.GetInfo()
+	go func() {
+		respData.Cpus = cpu.GetInfo()
+		wg.Done()
+	}()
+
+	go func() {
+		respData.Memory = memory.GetInfo()
+		wg.Done()
+	}()
+
+	go func() {
+		respData.IpmiSensors = ipmi.GetInfo()
+		wg.Done()
+	}()
+
+	wg.Wait()
 
 	return respData
 }

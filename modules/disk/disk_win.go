@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 func GetInfo() []DiskInfo {
@@ -23,24 +24,53 @@ func GetInfo() []DiskInfo {
 	}
 
 	disks := []DiskInfo{}
-	for _, d := range s.Devices {
-		diskInfo := getDiskInfo(d.InfoName)
-		fmt.Println("InfoName:", d.InfoName)
-		fmt.Println("ModelName:", diskInfo.ModelName)
-		fmt.Println("SerialNumber:", diskInfo.SerialNumber)
-		fmt.Println("ModelType:", diskInfo.ModelType)
-		fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
-		fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
-		fmt.Println("Temperature:", diskInfo.Temperature.Current)
-		fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
-		println("=============")
-		disks = append(disks, diskInfo)
+	var wg sync.WaitGroup
+	wg.Add(5)
+	var jobs = make(chan *Device, len(s.Devices))
+
+	for _, device := range s.Devices {
+		jobs <- &device
 	}
+
+	for i := 0; i < 5; i++ {
+		go func() {
+			for {
+				d, ok := <-jobs
+				if !ok {
+					fmt.Println("goroutine done")
+					wg.Done()
+					return
+				}
+
+				args := []string{"--json=c", "-a", d.InfoName}
+				if d.Type != "scsi" {
+					append_args := []string{"-d", d.Type}
+					args = append(args, append_args...)
+				}
+				diskInfo := getDiskInfo(d.InfoName, args...)
+				if diskInfo.ModelName == "" {
+					return
+				}
+				fmt.Println("InfoName:", d.InfoName)
+				fmt.Println("ModelName:", diskInfo.ModelName)
+				fmt.Println("SerialNumber:", diskInfo.SerialNumber)
+				fmt.Println("ModelType:", diskInfo.ModelType)
+				fmt.Println("SmartStatus:", diskInfo.SmartStatus.Passed)
+				fmt.Println("UserCapacity:", diskInfo.UserCapacity.Bytes)
+				fmt.Println("Temperature:", diskInfo.Temperature.Current)
+				fmt.Println("PowerOnTime:", diskInfo.PowerOnTime.Hours)
+				println("=============")
+				disks = append(disks, diskInfo)
+			}
+		}()
+	}
+
+	close(jobs)
+	wg.Wait()
 	return disks
 }
 
-func getDiskInfo(path string) DiskInfo {
-	args := []string{"--json=c", "-a", path}
+func getDiskInfo(path string, args ...string) DiskInfo {
 	output, err := bin.RunCommand("smartctl\\smartctl.exe", args...)
 	if err != nil {
 		fmt.Println("err:", err.Error())
