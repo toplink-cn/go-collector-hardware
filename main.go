@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -20,32 +21,42 @@ import (
 )
 
 func main() {
-	// 获取可执行文件的绝对路径
-	exePath, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		fmt.Println("获取可执行文件路径失败:", err)
-		return
-	}
 
-	// 创建文件锁
-	lockFile, err := os.Create(exePath + ".lock")
-	if err != nil {
-		fmt.Println("创建文件锁失败:", err)
-		return
-	}
+	if runtime.GOOS == "linux" {
+		// 获取可执行文件的绝对路径
+		exePath, err := filepath.Abs(os.Args[0])
+		if err != nil {
+			fmt.Println("获取可执行文件路径失败:", err)
+			return
+		}
 
-	// 尝试获取独占锁
-	err = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-	if err != nil {
-		fmt.Println("只能运行一个实例")
-		return
-	}
-	sendData()
+		// 创建文件锁
+		lockFile, err := os.Create(exePath + ".lock")
+		if err != nil {
+			fmt.Println("创建文件锁失败:", err)
+			return
+		}
 
-	// 关闭文件锁
-	err = lockFile.Close()
-	if err != nil {
-		fmt.Println("关闭文件锁失败:", err)
+		// 尝试获取独占锁
+		err = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		if err != nil {
+			fmt.Println("只能运行一个实例")
+			return
+		}
+		sendData()
+
+		// 关闭文件锁
+		err = lockFile.Close()
+		if err != nil {
+			fmt.Println("关闭文件锁失败:", err)
+		}
+	} else if runtime.GOOS == "windows" {
+		var mutex sync.Mutex
+		mutex.Lock()
+		sendData()
+		mutex.Unlock()
+	} else {
+		fmt.Println("Running on other platform")
 	}
 }
 
