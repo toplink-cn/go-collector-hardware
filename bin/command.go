@@ -4,75 +4,84 @@ import (
 	"bytes"
 	"collector/utils"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"time"
 )
 
 const CmdTimeout = 10 * time.Second
+const MaxCommandOutput = 2 * 1024 * 1024
 
-func RunCommand(filename string, args ...string) ([]byte, error) {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, CmdTimeout)
-	defer cancel()
-
-	rootDir := utils.GetBinDir()
-	osType := utils.GetOsType()
-	switch osType {
-	case "linux":
-		filename = rootDir + "/" + filename
-	case "windows":
-		filename = rootDir + "\\" + filename
-	default:
-		fmt.Println("Unknown OS")
+// RunCommandContext returns stdout separately so diagnostics cannot corrupt JSON.
+// A shorter parent deadline always wins over the per-command limit.
+func RunCommandContext(parent context.Context, filename string, args ...string) ([]byte, error) {
+	if !filepath.IsAbs(filename) {
+		filename = filepath.Join(utils.GetBinDir(), filepath.FromSlash(filename))
 	}
-	fmt.Println("cmd:", filename+" "+strings.Join(args, " "))
-	cmd := exec.CommandContext(ctx, filename, args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return out, err
-	}
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			fmt.Println("Exec command timeout")
-		} else {
-			return out, err
-		}
-	}
-
-	return out, nil
+	return runCommand(parent, filename, args...)
 }
 
-func RunCommandAndReturnBytes(filename string, args ...string) bytes.Buffer {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, CmdTimeout)
+func runCommand(parent context.Context, filename string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(parent, CmdTimeout)
 	defer cancel()
-
-	rootDir := utils.GetBinDir()
-	osType := utils.GetOsType()
-	switch osType {
-	case "linux":
-		filename = rootDir + "/" + filename
-	case "windows":
-		filename = rootDir + "\\" + filename
-	default:
-		fmt.Println("Unknown OS")
-	}
 	cmd := exec.CommandContext(ctx, filename, args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
+	cmd.WaitDelay = 250 * time.Millisecond
+	stdout, stderr := &boundedBuffer{}, &boundedBuffer{}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
 	err := cmd.Run()
-	if err != nil {
-		fmt.Println("Run RunCommandAndReturnBytes Error: ", filename)
+	if ctx.Err() != nil {
+		return stdout.Bytes(), fmt.Errorf("%s: %w", filepath.Base(filename), ctx.Err())
+	}
+	if stdout.exceeded || stderr.exceeded {
+		return stdout.Bytes(), fmt.Errorf("%s: command output exceeded limit", filepath.Base(filename))
 	}
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			fmt.Println("Exec command timeout")
-		} else {
-			fmt.Println("Run RunCommandAndReturnBytes Error: ", filename, err.Error())
-		}
+		return stdout.Bytes(), fmt.Errorf("%s: %w: %s", filepath.Base(filename), err, diagnostic(stderr.String()))
 	}
+	return stdout.Bytes(), nil
+}
 
-	return out
+func ExitCode(err error) (int, bool) {
+	var exit interface{ ExitCode() int }
+	if errors.As(err, &exit) {
+		return exit.ExitCode(), true
+	}
+	return 0, false
+}
+
+type boundedBuffer struct {
+	buffer   bytes.Buffer
+	exceeded bool
+}
+
+func (b *boundedBuffer) Bytes() []byte  { return b.buffer.Bytes() }
+func (b *boundedBuffer) String() string { return b.buffer.String() }
+func diagnostic(message string) string {
+	if len(message) > 4096 {
+		return message[:4096] + " (truncated)"
+	}
+	return message
+}
+
+func (b *boundedBuffer) Write(p []byte) (int, error) {
+	count := len(p)
+	remaining := MaxCommandOutput - b.buffer.Len()
+	if count > remaining {
+		b.exceeded = true
+		p = p[:remaining]
+	}
+	_, _ = b.buffer.Write(p)
+	return count, nil
+}
+
+func RunCommand(filename string, args ...string) ([]byte, error) {
+	return RunCommandContext(context.Background(), filename, args...)
+}
+
+// Deprecated: callers needing quality evidence must use RunCommandContext.
+func RunCommandAndReturnBytes(filename string, args ...string) bytes.Buffer {
+	out, _ := RunCommand(filename, args...)
+	return *bytes.NewBuffer(out)
 }

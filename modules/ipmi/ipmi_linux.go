@@ -1,32 +1,41 @@
 //go:build linux
-// +build linux
 
 package ipmi
 
 import (
-	"bytes"
-	"collector/bin"
-	"fmt"
+	"collector/modules/collection"
+	"os"
+	"strings"
 )
 
-func GetInfo() (sensors []Sensor) {
+func platformAvailability() error {
+	return checkLocalDevice([]string{"/dev/ipmi0", "/dev/ipmi/0", "/dev/ipmidev/0"})
+}
+func checkLocalDevice(paths []string) error {
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return nil
+		}
+	}
+	return collection.ErrUnsupported
+}
 
-	out := bin.RunCommandAndReturnBytes("ipmitool", "sensor")
-
-	// 解析传感器数据
-	lines := bytes.Split(out.Bytes(), []byte{'\n'})
-	for _, line := range lines {
-		fields := bytes.Split(line, []byte{'|'})
-		if len(fields) < 2 {
+func ipmiExecutable() string { return "ipmitool" }
+func parseSensors(output string) []Sensor {
+	values := []Sensor{}
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Split(line, "|")
+		if len(fields) < 3 {
 			continue
 		}
-
-		sensor := Sensor{Key: string(fields[0]), Value: string(fields[1])}
-
-		fmt.Printf("Sensor: %s, Value: %s\n", sensor.Key, sensor.Value)
-
-		sensors = append(sensors, sensor)
+		name, value, unit := strings.TrimSpace(fields[0]), strings.TrimSpace(fields[1]), strings.TrimSpace(fields[2])
+		if name == "" || value == "" || strings.EqualFold(value, "na") || strings.EqualFold(value, "no reading") {
+			continue
+		}
+		if unit != "" && !strings.EqualFold(unit, "unspecified") {
+			value += " " + unit
+		}
+		values = append(values, Sensor{Key: name, Value: value})
 	}
-
-	return sensors
+	return values
 }
